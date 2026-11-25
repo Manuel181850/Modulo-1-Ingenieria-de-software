@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Herramientas OSINT - Modulo 6</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #14171a;
+      color: #e6e9ec;
+      margin: 24px;
+    }
+    .contenedor {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .barra-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .filtros, .form-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    input, select, textarea, button {
+      background: #1f2429;
+      color: #e6e9ec;
+      border: 1px solid #38414a;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button {
+      cursor: pointer;
+      background: #2563eb;
+      border-color: #2563eb;
+      color: #fff;
+    }
+    button.secundario {
+      background: #2b3137;
+      border-color: #38414a;
+    }
+    button.peligro {
+      background: #991b1b;
+      border-color: #991b1b;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+      background: #1b2025;
+    }
+    th, td {
+      border: 1px solid #2e363e;
+      padding: 8px;
+      text-align: left;
+      font-size: 13px;
+    }
+    th {
+      background: #232930;
+    }
+    .caja {
+      background: #1b2025;
+      border: 1px solid #2e363e;
+      padding: 14px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    .oculto {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="contenedor">
+    <div class="barra-top">
+      <div>
+        <h2 style="margin: 0;">Herramientas OSINT (Modulo 6)</h2>
+        <small style="color: #9aa4ae;">Catalogo de herramientas y referencias</small>
+      </div>
+      <div>
+        <label for="rol">Rol:</label>
+        <select id="rol" onchange="cambiarRol()">
+          <option value="usuario">usuario</option>
+          <option value="admin">admin</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Ficha tecnica -->
+    <div id="ficha" class="caja oculto">
+      <h3 id="f_nombre" style="margin-top: 0;"></h3>
+      <p id="f_desc"></p>
+      <p><b>Categoria:</b> <span id="f_cat"></span> | <b>Costo:</b> <span id="f_costo"></span></p>
+      <p><b>Tipo de dato de entrada:</b> <span id="f_dato"></span></p>
+      <p><b>Uso etico y legal:</b> <span id="f_etica"></span></p>
+      <p><a id="f_url" href="#" target="_blank" style="color: #60a5fa;">Abrir enlace</a></p>
+      <button class="secundario" onclick="cerrarFicha()">Cerrar</button>
+      <button id="btn_baja" class="peligro oculto" onclick="darDeBaja()">Dar de baja</button>
+    </div>
+
+    <!-- Busqueda y filtros -->
+    <div class="filtros">
+      <input id="buscar" type="text" placeholder="Buscar..." oninput="cargarCatalogo()" />
+      <select id="categoria" onchange="cargarCatalogo()">
+        <option value="">Todas las categorias</option>
+        <option value="Personas">Personas</option>
+        <option value="Correos">Correos</option>
+        <option value="Teléfonos">Teléfonos</option>
+        <option value="Dominios">Dominios</option>
+        <option value="IP">IP</option>
+        <option value="Redes sociales">Redes sociales</option>
+        <option value="Imágenes">Imágenes</option>
+        <option value="Documentos">Documentos</option>
+      </select>
+      <select id="costo" onchange="cargarCatalogo()">
+        <option value="">Todos los costos</option>
+        <option value="Gratuita">Gratuita</option>
+        <option value="Freemium">Freemium</option>
+        <option value="De pago">De pago</option>
+      </select>
+    </div>
+
+    <!-- Tabla de herramientas -->
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Categoria</th>
+          <th>Costo</th>
+          <th>Dato de entrada</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tabla_cuerpo"></tbody>
+    </table>
+
+    <!-- Alta solo para admin -->
+    <div id="panel_admin" class="caja oculto">
+      <h3 style="margin-top: 0;">Agregar herramienta</h3>
+      <form onsubmit="guardarHerramienta(event)">
+        <div class="form-grid">
+          <input id="n_nombre" type="text" placeholder="Nombre" required />
+          <input id="n_categoria" type="text" placeholder="Categoria" required />
+          <input id="n_url" type="url" placeholder="https://..." required />
+          <input id="n_dato" type="text" placeholder="Tipo de dato entrada" required />
+          <select id="n_costo">
+            <option value="Gratuita">Gratuita</option>
+            <option value="Freemium">Freemium</option>
+            <option value="De pago">De pago</option>
+          </select>
+          <input id="n_etica" type="text" placeholder="Notas eticas y legales" required />
+        </div>
+        <div style="margin-bottom: 10px;">
+          <textarea id="n_desc" rows="2" style="width: 100%; box-sizing: border-box;" placeholder="Descripcion" required></textarea>
+        </div>
+        <button type="submit">Guardar</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const URL_API = "http://127.0.0.1:8000/api/v1/herramientas";
+    let idSeleccionado = null;
+
+    function cambiarRol() {
+      const esAdmin = rol.value === "admin";
+      panel_admin.classList.toggle("oculto", !esAdmin);
+      btn_baja.classList.toggle("oculto", !esAdmin);
+    }
+
+    async function cargarCatalogo() {
+      const params = new URLSearchParams();
+      if (buscar.value.trim()) params.append("q", buscar.value.trim());
+      if (categoria.value) params.append("categoria", categoria.value);
+      if (costo.value) params.append("modelo_costo", costo.value);
+
+      const resp = await fetch(`${URL_API}?${params.toString()}`);
+      const json = await resp.json();
+      const lista = json.data || [];
+
+      tabla_cuerpo.innerHTML = lista.map(item => `
+        <tr>
+          <td><b>${item.nombre}</b><br><small style="color:#9aa4ae;">${item.descripcion}</small></td>
+          <td>${item.categoria}</td>
+          <td>${item.modelo_costo}</td>
+          <td>${item.tipo_dato_entrada}</td>
+          <td>
+            <button class="secundario" onclick="verFicha(${item.id_herramienta})">Ficha</button>
+            <a href="${item.url}" target="_blank" style="margin-left:6px; color:#60a5fa;">Sitio</a>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    async function verFicha(id) {
+      const resp = await fetch(`${URL_API}/${id}`);
+      const json = await resp.json();
+      const h = json.data;
+      idSeleccionado = h.id_herramienta;
+
+      f_nombre.textContent = h.nombre;
+      f_desc.textContent = h.descripcion;
+      f_cat.textContent = h.categoria;
+      f_costo.textContent = h.modelo_costo;
+      f_dato.textContent = h.tipo_dato_entrada;
+      f_etica.textContent = h.notas_uso_etico_legal;
+      f_url.href = h.url;
+
+      ficha.classList.remove("oculto");
+    }
+
+    function cerrarFicha() {
+      ficha.classList.add("oculto");
+      idSeleccionado = null;
+    }
+
+    async function guardarHerramienta(e) {
+      e.preventDefault();
+      const resp = await fetch(URL_API, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Rol": rol.value
+        },
+        body: JSON.stringify({
+          nombre: n_nombre.value,
+          categoria: n_categoria.value,
+          url: n_url.value,
+          tipo_dato_entrada: n_dato.value,
+          modelo_costo: n_costo.value,
+          notas_uso_etico_legal: n_etica.value,
+          descripcion: n_desc.value
+        })
+      });
+
+      if (!resp.ok) {
+        alert("No autorizado o error al guardar");
+        return;
+      }
+      e.target.reset();
+      cargarCatalogo();
+    }
+
+    async function darDeBaja() {
+      if (!idSeleccionado) return;
+      const resp = await fetch(`${URL_API}/${idSeleccionado}`, {
+        method: "DELETE",
+        headers: { "X-Rol": rol.value }
+      });
+
+      if (!resp.ok) {
+        alert("No autorizado para dar de baja");
+        return;
+      }
+      cerrarFicha();
+      cargarCatalogo();
+    }
+
+    cambiarRol();
+    cargarCatalogo();
+  </script>
+</body>
+</html>
