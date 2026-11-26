@@ -1,0 +1,114 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "udint",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.RepeatIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.YesIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NoIntent",
+          "samples": []
+        },
+        {
+          "name": "ConsultarCasoIntent",
+          "slots": [
+            {
+              "name": "numeroCaso",
+              "type": "AMAZON.NUMBER"
+            }
+          ],
+          "samples": [
+            "consulta el caso {numeroCaso}",
+            "consultar el caso {numeroCaso}",
+            "busca el caso {numeroCaso}",
+            "dime el caso {numeroCaso}",
+            "información del caso {numeroCaso}",
+            "quiero el caso {numeroCaso}",
+            "abre el caso {numeroCaso}",
+            "caso {numeroCaso}"
+          ]
+        },
+        {
+          "name": "ConsultarEstatusIntent",
+          "slots": [
+            {
+              "name": "numeroCaso",
+              "type": "AMAZON.NUMBER"
+            }
+          ],
+          "samples": [
+            "estatus del caso {numeroCaso}",
+            "estado del caso {numeroCaso}",
+            "en qué estatus está el caso {numeroCaso}",
+            "cómo va el caso {numeroCaso}"
+          ]
+        },
+        {
+          "name": "ConsultarInvestigadoresIntent",
+          "slots": [
+            {
+              "name": "numeroCaso",
+              "type": "AMAZON.NUMBER"
+            }
+          ],
+          "samples": [
+            "investigadores del caso {numeroCaso}",
+            "quién lleva el caso {numeroCaso}",
+            "quiénes llevan el caso {numeroCaso}",
+            "a quién está asignado el caso {numeroCaso}"
+          ]
+        },
+        {
+          "name": "MisAlertasIntent",
+          "slots": [],
+          "samples": [
+            "mis alertas",
+            "cuáles son mis alertas",
+            "lee mis alertas",
+            "tengo alertas",
+            "mis notificaciones",
+            "qué alertas tengo"
+          ]
+        },
+        {
+          "name": "SiguienteAlertaIntent",
+          "slots": [],
+          "samples": [
+            "siguiente",
+            "la siguiente",
+            "continúa",
+            "sigue",
+            "otra alerta"
+          ]
+        }
+      ],
+      "types": []
+    }
+  }
+}
