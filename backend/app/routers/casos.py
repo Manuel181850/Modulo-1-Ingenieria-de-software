@@ -1,10 +1,15 @@
 from datetime import datetime, timezone
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import AsignacionCaso, Caso, HistorialEstatusCaso
+from app.models import (
+    AsignacionCaso,
+    BitacoraAuditoria,
+    Caso,
+    HistorialEstatusCaso,
+)
 from app.schemas import (
     AsignacionCreate,
     AsignacionResponse,
@@ -31,9 +36,31 @@ def _generar_siguiente_folio(db: Session) -> str:
     return f"UDINT-{anio}-{siguiente_num:04d}"
 
 
+def _registrar_auditoria(
+    db: Session,
+    id_usuario: int,
+    tipo_evento: str,
+    tabla_afectada: str,
+    id_registro: Optional[int],
+    descripcion: str,
+    request: Optional[Request] = None,
+) -> None:
+    ip = request.client.host if (request and request.client) else None
+    evento = BitacoraAuditoria(
+        id_usuario=id_usuario,
+        tipo_evento=tipo_evento,
+        tabla_afectada=tabla_afectada,
+        id_registro=id_registro,
+        direccion_ip=ip,
+        descripcion=descripcion,
+    )
+    db.add(evento)
+
+
 @router.post("", response_model=CasoDetalle, status_code=status.HTTP_201_CREATED)
 def crear_caso(
     payload: CasoCreate,
+    request: Request,
     db: Session = Depends(get_db),
     id_usuario: int = Depends(get_current_user_id),
 ):
@@ -60,6 +87,17 @@ def crear_caso(
         id_usuario_modifico=id_usuario,
     )
     db.add(historial_inicial)
+
+    _registrar_auditoria(
+        db=db,
+        id_usuario=id_usuario,
+        tipo_evento="CREACION_CASO",
+        tabla_afectada="casos",
+        id_registro=nuevo_caso.id_caso,
+        descripcion=f"Se registró el caso {folio}: {nuevo_caso.titulo}",
+        request=request,
+    )
+
     db.commit()
     db.refresh(nuevo_caso)
     return nuevo_caso
@@ -113,6 +151,7 @@ def obtener_caso_por_folio(numero_caso: str, db: Session = Depends(get_db)):
 def actualizar_estatus_caso(
     id_caso: int,
     payload: CasoUpdateEstatus,
+    request: Request,
     db: Session = Depends(get_db),
     id_usuario: int = Depends(get_current_user_id),
 ):
@@ -144,6 +183,19 @@ def actualizar_estatus_caso(
         id_usuario_modifico=id_usuario,
     )
     db.add(registro_historial)
+
+    _registrar_auditoria(
+        db=db,
+        id_usuario=id_usuario,
+        tipo_evento="CAMBIO_ESTATUS",
+        tabla_afectada="casos",
+        id_registro=caso.id_caso,
+        descripcion=(
+            f"Caso {caso.numero_caso} cambió de {estatus_anterior} a {payload.estatus_nuevo}"
+        ),
+        request=request,
+    )
+
     db.commit()
     db.refresh(caso)
     return caso
@@ -157,6 +209,7 @@ def actualizar_estatus_caso(
 def asignar_usuario_caso(
     id_caso: int,
     payload: AsignacionCreate,
+    request: Request,
     db: Session = Depends(get_db),
     id_usuario_asigno: int = Depends(get_current_user_id),
 ):
@@ -191,6 +244,20 @@ def asignar_usuario_caso(
         activo=True,
     )
     db.add(nueva_asignacion)
+    db.flush()
+
+    _registrar_auditoria(
+        db=db,
+        id_usuario=id_usuario_asigno,
+        tipo_evento="ASIGNACION_CASO",
+        tabla_afectada="asignaciones_caso",
+        id_registro=nueva_asignacion.id_asignacion,
+        descripcion=(
+            f"Se asignó usuario {payload.id_usuario} ({payload.rol_en_caso}) al caso {caso.numero_caso}"
+        ),
+        request=request,
+    )
+
     db.commit()
     db.refresh(nueva_asignacion)
     return nueva_asignacion
@@ -203,8 +270,17 @@ def asignar_usuario_caso(
 def desasignar_usuario_caso(
     id_caso: int,
     id_usuario: int,
+    request: Request,
     db: Session = Depends(get_db),
+    id_usuario_actual: int = Depends(get_current_user_id),
 ):
+    caso = db.query(Caso).filter(Caso.id_caso == id_caso).first()
+    if not caso:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Caso no encontrado",
+        )
+
     asignaciones = (
         db.query(AsignacionCaso)
         .filter(
@@ -222,6 +298,18 @@ def desasignar_usuario_caso(
 
     for asig in asignaciones:
         asig.activo = False
+
+    _registrar_auditoria(
+        db=db,
+        id_usuario=id_usuario_actual,
+        tipo_evento="DESASIGNACION_CASO",
+        tabla_afectada="asignaciones_caso",
+        id_registro=id_caso,
+        descripcion=(
+            f"Se desasignó usuario {id_usuario} del caso {caso.numero_caso}"
+        ),
+        request=request,
+    )
 
     db.commit()
     return None

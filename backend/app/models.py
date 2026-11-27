@@ -81,3 +81,18 @@ class HistorialEstatusCaso(Base):
     id_usuario_modifico = Column(Integer, nullable=False)
 
     caso = relationship("Caso", back_populates="historial_estatus")
+
+
+class BitacoraAuditoria(Base):
+    __tablename__ = "bitacora_auditoria"
+
+    id_auditoria = Column(Integer, primary_key=True, index=True)
+    id_usuario = Column(Integer, nullable=False)
+    tipo_evento = Column(String(50), nullable=False)
+    tabla_afectada = Column(String(50), nullable=False)
+    id_registro = Column(Integer, nullable=True)
+    direccion_ip = Column(String(45), nullable=True)
+    fecha_evento = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    descripcion = Column(Text, nullable=False)
