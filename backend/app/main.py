@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import casos
+from app.routers import admin, casos
 
 app = FastAPI(
     title="UDINT - Módulo Administración de Casos (Equipo 3)",
@@ -18,6 +18,7 @@ app.add_middleware(
 )
 
 app.include_router(casos.router)
+app.include_router(admin.router)
 
 
 @app.get("/health", tags=["Sistema"])

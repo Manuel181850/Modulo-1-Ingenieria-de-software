@@ -75,3 +75,30 @@ class PaginacionCasos(BaseModel):
     page: int
     limit: int
     data: List[CasoResumen]
+
+
+
+class EventoTimelineResponse(BaseModel):
+    id_auditoria: int
+    id_usuario: int
+    tipo_evento: str
+    tabla_afectada: str
+    id_registro: Optional[int]
+    direccion_ip: Optional[str]
+    fecha_evento: datetime
+    descripcion: str
+
+    model_config = {"from_attributes": True}
+
+
+class PaginacionTimeline(BaseModel):
+    total: int
+    page: int
+    limit: int
+    data: List[EventoTimelineResponse]
+
+
+class IndicadoresPanelResponse(BaseModel):
+    total_casos: int
+    por_estatus: dict[str, int]
+    casos_sin_asignar: int
